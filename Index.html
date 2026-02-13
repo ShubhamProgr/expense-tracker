@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?!= include('Styles'); ?>
+  </head>
+  <body>
+
+    <div id="loadingOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; justify-content:center; align-items:center; flex-direction:column; color:white;">
+      <div class="spinner"></div> <p style="margin-top:10px; font-weight:bold;">Processing...</p>
+    </div>
+
+    <div class="login-card">
+      <p class="login-label">Active Session Identity</p>
+      <select id="manualUserName" class="login-input" onchange="saveLocalName()">
+        <option value="">-- Select Your Name --</option>
+      </select>
+    </div>
+
+    <div class="header">
+      <div class="stats">
+        <div>Today<b id="dayTotal">₹0</b></div>
+        <div>Overall<b id="overallTotal">₹0</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>New Daily Expense</h3>
+      <div id="inputContainer">
+        <div class="input-row-tidy">
+          <input type="text" placeholder="Item" class="item-name">
+          <input type="number" placeholder="₹" class="item-amount">
+          <select class="item-category">
+            <option value="General">General</option>
+            <option value="Puja">Puja</option>
+            <option value="Food">Food</option>
+            <option value="Travel">Travel</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="button-group-tidy">
+        <button class="add-row-btn" onclick="addRow()">+ Row</button>
+        <button id="saveBtn" class="save-btn" onclick="saveAll()">Save All</button>
+      </div>
+      
+      <input type="file" id="receiptFile" accept="image/*" class="file-input-compact">
+    </div>
+
+    <div class="card">
+      <h3>History</h3>
+      <div id="historyList" class="scroll-container">Loading...</div>
+    </div>
+
+    <div class="card">
+      <h3>Vendor Management</h3>
+      
+      <div class="input-group">
+        <label>Action Type</label>
+        <select id="advMode" onchange="toggleAdvMode()" class="standard-select">
+          <option value="add">Add New Entry (Contract)</option>
+          <option value="update">Pay Installment</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label>Vendor Name</label>
+        <div id="newVendorInputRow">
+          <input type="text" id="advVendorText" placeholder="Type name..." class="standard-input">
+        </div>
+        <div id="existingVendorSelectRow" style="display:none;">
+          <select id="advVendorSelect" class="standard-select">
+            <option value="">-- Select Vendor --</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="advTotalRow" class="input-group">
+        <label>Contract Amount</label>
+        <input type="number" id="advTotal" placeholder="₹ Total" class="standard-input">
+      </div>
+
+      <div class="input-group">
+        <label>Paying Now</label>
+        <input type="number" id="advPaid" placeholder="₹ Amount" class="standard-input">
+      </div>
+      
+      <p class="label-small">Vendor Receipt:</p>
+      <input type="file" id="advReceiptFile" accept="image/*" class="file-input">
+      
+      <button id="advBtn" class="save-btn" onclick="saveAdvance()">Submit Entry</button>
+    </div>
+
+    <div class="card">
+      <h3>Balances & Logs</h3>
+      <div id="advanceList">Loading...</div>
+    </div>
+
+    <div id="debugConsole"></div>
+
+    <?!= include('JavaScript'); ?>
+  </body>
+</html>

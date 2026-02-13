@@ -1,0 +1,212 @@
+<style>
+  :root { 
+    --primary: #2563eb; 
+    --success: #22c55e; 
+    --danger: #ef4444; 
+    --bg: #f8fafc; 
+    --text: #1e293b; 
+    --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  }
+
+  body { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+    background: var(--bg); 
+    color: var(--text); 
+    margin: 0; 
+    padding: 15px; 
+    line-height: 1.5;
+  }
+
+  #loadingOverlay {
+    display: none; 
+    position: fixed; 
+    top: 0; left: 0; 
+    width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.7); 
+    z-index: 10000; 
+    justify-content: center; 
+    align-items: center; 
+    flex-direction: column; 
+    color: white;
+    backdrop-filter: blur(2px);
+  }
+
+  .spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 4px solid #ffffff;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .header { 
+    background: linear-gradient(135deg, var(--primary), #1e40af); 
+    color: white; 
+    padding: 20px; 
+    border-radius: 15px; 
+    margin-bottom: 20px; 
+    box-shadow: var(--card-shadow);
+  }
+
+  .stats { display: flex; justify-content: space-around; text-align: center; }
+  .stats b { font-size: 1.5rem; display: block; }
+
+  .card { 
+    overflow: hidden;
+    background: white; 
+    padding: 12px; 
+    border-radius: 15px; 
+    margin-bottom: 15px; 
+    box-shadow: var(--card-shadow); 
+  }
+
+  .card h3 { margin-top: 0; font-size: 1.1rem; color: var(--primary); }
+
+  .input-row-tidy {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: center;
+  }
+
+  .input-row-tidy input, .input-row-tidy select {
+    padding: 10px 5px; 
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    min-width: 0;
+  }
+
+  .save-btn { 
+    background: var(--primary); 
+    color: white; 
+    width: 100%; 
+    padding: 14px; 
+    border-radius: 10px; 
+    border: none; 
+    font-weight: bold; 
+    cursor: pointer;
+    font-size: 1rem;
+    transition: opacity 0.2s;
+  }
+
+  .save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .add-row-btn { 
+    background: #eef2ff; 
+    color: var(--primary); 
+    border: 1px dashed var(--primary); 
+    padding: 10px; 
+    border-radius: 8px; 
+    margin-bottom: 15px; 
+    width: 100%; 
+    font-weight: 600;
+  }
+
+  .scroll-container {
+    max-height: 350px; 
+    overflow-y: auto; 
+    padding-right: 5px;
+    border-radius: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .scroll-container::-webkit-scrollbar { width: 5px; }
+  .scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+  .history-item { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 12px 0; 
+    border-bottom: 1px solid #f1f5f9; 
+  }
+
+  .history-info b { font-size: 0.95rem; display: block; }
+  .history-info small { color: #64748b; font-size: 0.8rem; }
+
+  .advance-card { 
+    display: flex; 
+    justify-content: space-between; 
+    padding: 15px; 
+    border: 1px solid #e2e8f0; 
+    border-radius: 12px; 
+    margin-bottom: 12px; 
+    background: #fff;
+  }
+
+  .vendor-name { font-weight: bold; font-size: 1rem; color: var(--text); }
+  .paid-amount { color: var(--success); font-weight: bold; }
+  .due-amount { color: var(--danger); font-weight: bold; font-size: 1.1rem; }
+
+  .login-card {
+    background: var(--primary);
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border-left: 6px solid var(--success);
+    box-shadow: var(--card-shadow);
+  }
+
+  .login-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 800;
+    margin: 0 0 10px 0;
+  }
+
+  .login-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-weight: bold;
+    outline: none;
+  }
+
+  .login-input option { color: #000; background: #fff; }
+
+  #debugConsole { 
+    font-family: monospace;
+    font-size: 11px; 
+    color: #94a3b8; 
+    background: #f1f5f9;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 20px; 
+  }
+
+  .standard-input, .standard-select, .input-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    margin-top: 5px;
+    box-sizing: border-box;
+  }
+
+  .input-group {
+    margin-bottom: 15px;
+  }
+
+  .input-group label {
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #64748b;
+  }
+
+  .item-name { flex: 2; }
+  .item-amount { flex: 1; }
+  .item-category { flex: 1.2; }
+
+</style>
