@@ -1,0 +1,214 @@
+<script>
+  let cachedCategories = []; 
+
+  function logDebug(msg) {
+    const d = document.getElementById('debugConsole');
+    if (d) {
+      let logs = d.innerText.split("\n");
+      if (logs.length > 5) logs.shift(); 
+      logs.push("> " + msg);
+      d.innerText = logs.join("\n");
+    }
+  }
+
+  function loadDashboard() {
+    const savedName = localStorage.getItem('eventTrackerUser');
+    const userField = document.getElementById('manualUserName');
+    if (savedName && userField) userField.value = savedName;
+
+    logDebug("Connecting to server...");
+    google.script.run
+      .withSuccessHandler(updateUI)
+      .withFailureHandler(e => alert("Load Error: " + e.message))
+      .getDashboardData();
+  }
+
+  function getCategoryOptionsHtml() {
+    if (cachedCategories.length === 0) {
+      return `<option value="General">General</option><option value="Puja">Puja</option>`;
+    }
+    return cachedCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+  }
+
+  function updateUI(data) {
+    if (!data || data.error) return logDebug(data ? data.error : "No data received.");
+
+    if (data.categoryList) {
+      cachedCategories = data.categoryList;
+      const dropdowns = document.getElementsByClassName('item-category');
+      for (let select of dropdowns) {
+        select.innerHTML = getCategoryOptionsHtml();
+      }
+    }
+
+    const userSelect = document.getElementById('manualUserName');
+    if (data.userList && userSelect) {
+      userSelect.options.length = 1; 
+      data.userList.forEach(name => userSelect.add(new Option(name, name)));
+      const saved = localStorage.getItem('eventTrackerUser');
+      if (saved) userSelect.value = saved;
+    }
+
+    const vendorSelect = document.getElementById('advVendorSelect');
+    if (vendorSelect && data.advances) {
+      vendorSelect.options.length = 1;
+      data.advances.forEach(a => vendorSelect.add(new Option(a.vendor, a.vendor)));
+    }
+
+    document.getElementById('dayTotal').innerText = "₹" + (data.dayTotal || 0);
+    document.getElementById('overallTotal').innerText = "₹" + (data.overallTotal || 0);
+
+    let hHtml = "";
+    if (data.history) {
+      data.history.forEach(h => {
+        const hasUrl = h.receipt && h.receipt.startsWith('http');
+        hHtml += `
+          <div class="history-item">
+            <div class="history-info">
+              <b>${h.item}</b>
+              <small>${h.date} - ₹${h.amount} 
+                <span style="color:var(--primary); font-weight:bold;"> By ${h.user}</span>
+                <span style="background:#e2e8f0; padding:2px 6px; border-radius:4px; margin-left:5px; font-size:0.7rem;">${h.category}</span>
+              </small>
+            </div>
+            ${hasUrl ? `<button class="view-btn" onclick="window.open('${h.receipt}','_blank')">View</button>` : `<span style="font-size:0.7rem; color:#94a3b8;">No Bill</span>`}
+          </div>`;
+      });
+    }
+    document.getElementById('historyList').innerHTML = hHtml || "No recent history.";
+
+    let aHtml = "";
+    if (data.advances) {
+      data.advances.forEach(a => {
+        const logsHtml = a.logs && a.logs.length > 0 
+          ? `<details style="margin-top:8px;">
+               <summary style="font-size:0.75rem; color:var(--primary); cursor:pointer;">View Payments (${a.logs.length})</summary>
+               <div class="vendor-history" style="font-size:0.7rem; padding:5px; border-top:1px solid #eee;">
+                 ${a.logs.map(l => `<div style="margin-bottom:2px;">${l.date}: ₹${l.amount}</div>`).join('')}
+               </div>
+             </details>` 
+          : "";
+
+        aHtml += `
+          <div class="advance-card" onclick="prepareUpdate('${a.vendor.replace(/'/g,"\\'")}')">
+            <div class="vendor-lhs">
+              <span class="vendor-name">${a.vendor}</span>
+              <span class="contract-label">Total: ₹${a.total}</span>
+              ${logsHtml}
+            </div>
+            <div class="vendor-rhs">
+              <span class="paid-amount">Paid: ₹${a.paid}</span>
+              <span class="due-amount">Due: ₹${a.remaining}</span>
+            </div>
+          </div>`;
+      });
+    }
+    document.getElementById('advanceList').innerHTML = aHtml || "No vendor balances.";
+    logDebug("Dashboard Updated! ");
+  }
+
+  function saveAll() {
+    const selectedName = document.getElementById('manualUserName').value;
+    if (!selectedName || selectedName === "Guest") return alert("Please select identity first!");
+
+    const names = document.getElementsByClassName('item-name');
+    const amounts = document.getElementsByClassName('item-amount');
+    const categories = document.getElementsByClassName('item-category');
+    const items = [];
+    
+    for(let i=0; i<names.length; i++) {
+      if(names[i].value && amounts[i].value) {
+        items.push({
+          name: names[i].value, 
+          amount: amounts[i].value,
+          category: categories[i] ? categories[i].value : "General"
+        });
+      }
+    }
+    
+    if (items.length === 0) return alert("Please enter at least one item.");
+    
+    const btn = document.getElementById('saveBtn');
+    const overlay = document.getElementById('loadingOverlay');
+    if (btn) { btn.disabled = true; btn.innerText = "Saving..."; }
+    if (overlay) overlay.style.display = 'flex';
+
+    google.script.run
+      .withSuccessHandler((res) => {
+        if (btn) { btn.disabled = false; btn.innerText = "Save All"; }
+        if (overlay) overlay.style.display = 'none';
+        updateUI(res);
+        document.getElementById('inputContainer').innerHTML = `
+          <div class="input-row-tidy">
+            <input type="text" placeholder="Item" class="item-name" style="flex: 2;">
+            <input type="number" placeholder="₹" class="item-amount" style="flex: 1;">
+            <select class="item-category" style="flex: 1.2;">${getCategoryOptionsHtml()}</select>
+          </div>`;
+        alert("Saved Successfully! ");
+      })
+      .withFailureHandler(e => { 
+        alert(e.message); 
+        if (btn) btn.disabled = false; 
+        if (overlay) overlay.style.display = 'none';
+      })
+      .addExpenses(items, null, null, selectedName);
+  }
+
+ function addRow() { 
+  const container = document.getElementById('inputContainer');
+  const d = document.createElement('div'); 
+  d.className = "input-row-tidy";
+  d.innerHTML = `
+    <input type="text" class="item-name" placeholder="Item"> 
+    <input type="number" class="item-amount" placeholder="₹">
+    <select class="item-category">
+      ${getCategoryOptionsHtml()} 
+    </select>`; 
+  container.appendChild(d);
+}
+
+  function saveAdvance() {
+    const selectedName = document.getElementById('manualUserName').value;
+    const mode = document.getElementById('advMode').value;
+    const v = (mode === 'update') ? document.getElementById('advVendorSelect').value : document.getElementById('advVendorText').value.trim();
+
+    if (!v || !selectedName) return alert("Missing Identity or Vendor.");
+    
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.style.display = 'flex';
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (overlay) overlay.style.display = 'none';
+        updateUI(res);
+        alert("Vendor Entry Successful! ");
+      })
+      .withFailureHandler(e => { 
+        alert(e.message); 
+        if (overlay) overlay.style.display = 'none'; 
+      })
+      .updateAdvanceEntry(v, parseFloat(document.getElementById('advTotal').value)||0, parseFloat(document.getElementById('advPaid').value)||0, mode, null, null, selectedName);
+  }
+
+  function toggleAdvMode() { 
+    const isUpdate = document.getElementById('advMode').value === 'update';
+    document.getElementById('advTotalRow').style.display = isUpdate ? 'none' : 'block'; 
+    document.getElementById('newVendorInputRow').style.display = isUpdate ? 'none' : 'block';
+    document.getElementById('existingVendorSelectRow').style.display = isUpdate ? 'block' : 'none';
+  }
+
+  function prepareUpdate(vName) { 
+    const modeSelect = document.getElementById('advMode');
+    if (modeSelect) {
+      modeSelect.value = 'update'; 
+      toggleAdvMode(); 
+      document.getElementById('advVendorSelect').value = vName; 
+    }
+  }
+
+  function saveLocalName() {
+    localStorage.setItem('eventTrackerUser', document.getElementById('manualUserName').value);
+  }
+
+  window.onload = loadDashboard;
+</script>
